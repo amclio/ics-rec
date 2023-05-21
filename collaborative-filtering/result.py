@@ -27,18 +27,23 @@ movies_not_watched = movie_df[
 movies_not_watched = list(
     set(movies_not_watched).intersection(set(movie2movie_encoded.keys()))
 )
+# NOTE: Encoded Movie ID
 movies_not_watched = [[movie2movie_encoded.get(x)] for x in movies_not_watched]
+# NOTE: Encoded User ID.
 user_encoder = user2user_encoded.get(user_id)
 user_movie_array = np.hstack(
     ([[user_encoder]] * len(movies_not_watched), movies_not_watched)  # type: ignore
 )
 
-
 ratings = model.predict(user_movie_array).flatten()  # type: ignore
 top_ratings_indices = ratings.argsort()[-10:][::-1]
 recommended_movie_ids = [
-    movie_encoded2movie.get(movies_not_watched[x][0]) for x in top_ratings_indices
+    # NOTE: `movie_encoded2movie` is finally used here!
+    movie_encoded2movie.get(movies_not_watched[x][0])
+    for x in top_ratings_indices
 ]
+
+# NOTE: Below are the useless codes. It's time to apply confusion matrix.
 
 print("Showing recommendations for user: {}".format(user_id))
 print("====" * 9)

@@ -13,16 +13,22 @@ ratings_file = os.path.join(movielens_dir, "ratings.csv")
 
 df = pd.read_csv(ratings_file)
 
-########## B
 
 user_ids = df["userId"].unique().tolist()
 user2user_encoded = {x: i for i, x in enumerate(user_ids)}
 userencoded2user = {i: x for i, x in enumerate(user_ids)}
+
 movie_ids = df["movieId"].unique().tolist()
+
+# NOTE: Seems not properly displayed in the debugger? Maybe bugs.
 movie2movie_encoded = {x: i for i, x in enumerate(movie_ids)}
 movie_encoded2movie = {i: x for i, x in enumerate(movie_ids)}
+
+# NOTE: `user_ids` are unique, otherewise these are not.
+# NOTE: `user` and `movie` of each line will exactly matches for the table that we started with.
 df["user"] = df["userId"].map(user2user_encoded)
 df["movie"] = df["movieId"].map(movie2movie_encoded)
+
 
 num_users = len(user2user_encoded)
 num_movies = len(movie_encoded2movie)
@@ -38,8 +44,10 @@ print(
 )
 
 
-########## C
 df = df.sample(frac=1, random_state=42)
+
+# NOTE: Got it. `x` and `y` have relation!
+
 x = df[["user", "movie"]].values
 # Normalize the targets between 0 and 1. Makes it easy to train.
 y = df["rating"].apply(lambda x: (x - min_rating) / (max_rating - min_rating)).values

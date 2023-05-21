@@ -12,6 +12,8 @@ class RecommenderNet(tf.keras.Model):
         self.num_users = num_users
         self.num_movies = num_movies
         self.embedding_size = embedding_size
+
+        # NOTE: https://keras.io/api/layers/core_layers/embedding
         self.user_embedding = layers.Embedding(
             num_users,
             embedding_size,
@@ -36,6 +38,7 @@ class RecommenderNet(tf.keras.Model):
         # Add all the components (including bias)
         x = dot_user_movie + user_bias + movie_bias
         # The sigmoid activation forces the rating to between 0 and 1
+        # NOTE: What? Sigmoid function is used here!
         return tf.nn.sigmoid(x)
 
 
