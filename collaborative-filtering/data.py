@@ -8,7 +8,8 @@ import os
 import numpy as np
 import pandas as pd
 
-movielens_dir = "collaborative-filtering/assets/movielens"
+movielens_dir = "collaborative-filtering/assets/movielens-small"
+# movielens_dir = "collaborative-filtering/assets/movielens"
 ratings_file = os.path.join(movielens_dir, "ratings.csv")
 
 df = pd.read_csv(ratings_file)
@@ -59,3 +60,5 @@ x_train, x_val, y_train, y_val = (
     y[:train_indices],
     y[train_indices:],
 )
+
+print()

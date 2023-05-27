@@ -1,13 +1,14 @@
 # NOTE: Implementing Precision/Recall@K
 
 import tensorflow as tf
-from data import user_ids
+from data import user2user_encoded, user_ids
 from predict import UserInstance
 from tensorflow import keras
 
 # NOTE: Top-K constant
 K = 10
-threshold_rating = 3.5
+# threshold_rating = 3.5
+threshold_rating = 0
 
 precision_list = []
 recall_list = []
@@ -22,6 +23,7 @@ for i, user_id in enumerate(user_ids):
     movies_in_high_rating = instance.movies_watched_by_user[
         instance.movies_watched_by_user["rating"] >= threshold_rating
     ]
+
     intersection = movies_in_high_rating[
         movies_in_high_rating["movieId"].isin(recommended_movie_ids)
     ]
