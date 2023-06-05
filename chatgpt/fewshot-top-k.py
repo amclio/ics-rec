@@ -11,16 +11,17 @@ from typing import Callable, Any
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 SHOT_RATING_THRESHOLD = 5
-PREDICTED_RATING_THRESHOLD = 8
 
-SAMPLE_COUNT = 500
+SAMPLE_COUNT = 1000
+
+TOP_K = 10
 
 RECOMMENDING_PROMPT = """
-You are a movie recommender system now.
+You are a great movie recommender system now.
 
 Here is the watching history of a user: {}.
 
-The user has given high ratings to the provided movies. Based on this history, please predict the user’s rating for the following item: {} (1 being lowest and 10 being highest)
+The user has given high ratings to the provided movies. Based on this history, please predict the user’s rating for the following item: {} (1 being lowest and 100 being highest)
 
 You should wrap the rating number with the ` (Backtick) so that the program can parse it. You MUST NOT include any other characters in your response except the rating. You MUST represent ratings not in RANGE but a SINGLE NUMBER.
 """
@@ -51,40 +52,35 @@ def get_rating_from_gpt(create_response: Callable[..., Any]) -> int:
         raise
 
 
-def create_confusion_matrix(
+def create_confusion_matrix_top_k(
     df: pd.DataFrame,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     empty_df = pd.DataFrame(columns=df.columns)
+    top_k_df = df.head(10)
+    bottom_k_df = df.tail(len(df) - 10)
 
     tp_df_list = []
-    tn_df_list = []
     fp_df_list = []
+    tn_df_list = []
     fn_df_list = []
 
-    for _, row in df.iterrows():
+    for _, row in top_k_df.iterrows():
         # NOTE: TP
-        if (row["predicted_ratings"] >= PREDICTED_RATING_THRESHOLD) & row[
-            "exists_in_watched"
-        ]:
+        if row["exists_in_watched"]:
             tp_df_list.append(row.to_dict())
             continue
         # NOTE: FP
-        if (row["predicted_ratings"] >= PREDICTED_RATING_THRESHOLD) & ~row[
-            "exists_in_watched"
-        ]:
+        if ~row["exists_in_watched"]:
             fp_df_list.append(row.to_dict())
             continue
+
+    for _, row in bottom_k_df.iterrows():
         # NOTE: TN
-        if (row["predicted_ratings"] < PREDICTED_RATING_THRESHOLD) & ~row[
-            "exists_in_watched"
-        ]:
-            tn_df_list.append(row.to_dict())
-            continue
-        # NOTE: FN
-        if (row["predicted_ratings"] < PREDICTED_RATING_THRESHOLD) & row[
-            "exists_in_watched"
-        ]:
+        if row["exists_in_watched"]:
             fn_df_list.append(row.to_dict())
+            continue
+        if ~row["exists_in_watched"]:
+            tn_df_list.append(row.to_dict())
             continue
 
     tp_df = pd.DataFrame(tp_df_list) if len(tp_df_list) != 0 else empty_df
@@ -146,12 +142,16 @@ for _, user_id in enumerate(sampled_users_id_list):
     sampled_movies_df["predicted_ratings"] = chatgpt_ratings
     sampled_movies_df["exists_in_watched"] = exists_in_watched
 
+    sorted_sampled_movies_df = sampled_movies_df.sort_values(
+        by="predicted_ratings", ascending=False
+    )
+
     (
         tp_df_list,
         tn_df_list,
         fp_df_list,
         fn_df_list,
-    ) = create_confusion_matrix(df=sampled_movies_df)
+    ) = create_confusion_matrix_top_k(df=sorted_sampled_movies_df)
 
     precision, recall = calculate_precision_recall(
         tp=len(tp_df_list),
